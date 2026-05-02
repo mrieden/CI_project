@@ -3,13 +3,16 @@ import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 
 class KMeans:
-    def __init__(self, k=3, max_iters=100, tol=1e-4):
+    def __init__(self, k=3, max_iters=100, tol=1e-4, random_state=None):
         self.k = k
         self.max_iters = max_iters
         self.tol = tol
         self.centroids = None
+        self.random_state = random_state
 
     def fit(self, X):
+        if self.random_state is not None:
+            np.random.seed(self.random_state)
         random_indices = np.random.choice(len(X), self.k, replace=False)
         self.centroids = X[random_indices]
 
