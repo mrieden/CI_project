@@ -162,7 +162,7 @@ class ExtremalOptimization:
         print(f"EO finished — best WCSS: {fitness:.4f}")
         return labels, fitness
 
-    def plot_clusters(self, X: np.ndarray, labels: np.ndarray):
+    def plot_clusters(self, X , labels):
         """PCA-reduced 2-D scatter plot (identical interface to KMeans)."""
         pca = PCA(n_components=2)
         X_pca = pca.fit_transform(X)
