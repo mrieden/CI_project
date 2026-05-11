@@ -13,6 +13,7 @@ class KMeans:
     def fit(self, X):
         if self.random_state is not None:
             np.random.seed(self.random_state)
+
         random_indices = np.random.choice(len(X), self.k, replace=False)
         self.centroids = X[random_indices]
 
@@ -20,15 +21,25 @@ class KMeans:
             distances = np.linalg.norm(X[:, np.newaxis] - self.centroids, axis=2)
             labels = np.argmin(distances, axis=1)
 
-            new_centroids = np.array([X[labels == j].mean(axis=0) for j in range(self.k)])
+            new_centroids = np.array([
+                X[labels == j].mean(axis=0) if len(X[labels == j]) > 0 else self.centroids[j]
+                for j in range(self.k)
+            ])
 
             if np.all(np.abs(new_centroids - self.centroids) < self.tol):
                 print(f"Converged at iteration {i}")
                 break
-                
+
             self.centroids = new_centroids
-        
-        return labels
+
+        # ===== FITNESS (WCSS) =====
+        fitness = 0
+        for j in range(self.k):
+            cluster_points = X[labels == j]
+            if len(cluster_points) > 0:
+                fitness += np.sum((cluster_points - self.centroids[j]) ** 2)
+
+        return labels, fitness
 
     def plot_clusters(self, X, labels):
         pca = PCA(n_components=2)

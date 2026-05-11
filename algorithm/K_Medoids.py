@@ -14,42 +14,55 @@ class KMedoids:
         if self.random_state is not None:
             np.random.seed(self.random_state)
             
-        # Initialize medoids by randomly selecting actual data points
+        # Initialize medoids
         random_indices = np.random.choice(len(X), self.k, replace=False)
         self.medoids = X[random_indices]
 
         for i in range(self.max_iters):
-            # Calculate Manhattan distances from all points to all medoids using broadcasting
+            # Manhattan distances to medoids
             distances = np.sum(np.abs(X[:, np.newaxis] - self.medoids), axis=2)
             labels = np.argmin(distances, axis=1)
 
             new_medoids = np.zeros_like(self.medoids)
 
-            # Update medoids by finding the point in each cluster with the minimum total distance
             for j in range(self.k):
                 cluster_points = X[labels == j]
-                
-                # Handle empty clusters
+
+                # Handle empty cluster
                 if len(cluster_points) == 0:
                     new_medoids[j] = self.medoids[j]
                     continue
-                    
-                # Vectorized pairwise Manhattan distances within the cluster
-                pairwise_distances = np.sum(np.abs(cluster_points[:, np.newaxis] - cluster_points), axis=2)
-                
-                # The new medoid is the point with the lowest cost (sum of distances to all others in cluster)
+
+                # Pairwise Manhattan distances inside cluster
+                pairwise_distances = np.sum(
+                    np.abs(cluster_points[:, np.newaxis] - cluster_points),
+                    axis=2
+                )
+
+                # Choose medoid with minimum total distance
                 cost = np.sum(pairwise_distances, axis=1)
                 best_medoid_idx = np.argmin(cost)
                 new_medoids[j] = cluster_points[best_medoid_idx]
 
-            # Check for convergence
+            # Convergence check
             if np.all(np.abs(new_medoids - self.medoids) < self.tol):
                 print(f"Converged at iteration {i}")
                 break
-                
+
             self.medoids = new_medoids
-        
-        return labels
+
+        fitness = 0
+        distances = np.sum(np.abs(X[:, np.newaxis] - self.medoids), axis=2)
+        labels = np.argmin(distances, axis=1)
+
+        for j in range(self.k):
+            cluster_points = X[labels == j]
+            if len(cluster_points) > 0:
+                fitness += np.sum(
+                    np.sum(np.abs(cluster_points - self.medoids[j]), axis=1)
+                )
+
+        return labels, fitness
 
     def plot_clusters(self, X, labels):
         pca = PCA(n_components=2)
