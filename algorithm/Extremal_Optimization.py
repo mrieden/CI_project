@@ -1,33 +1,11 @@
+import pandas as pd
+
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 
 
 class ExtremalOptimization:
-    """
-    Extremal Optimization (EO) for clustering.
-
-    EO is a nature-inspired metaheuristic that iteratively improves the
-    worst-performing element in the current solution. For clustering, each
-    centroid is scored by its contribution to WCSS; the worst centroid is
-    perturbed, and the move is accepted if it improves global fitness.
-
-    Parameters
-    ----------
-    k : int
-        Number of clusters.
-    max_iters : int
-        Maximum number of improvement iterations.
-    tau : float
-        EO "temperature" exponent (τ). Higher values focus more on the
-        absolute worst centroid; lower values allow broader exploration.
-        Typical range: 1.0–2.5.
-    perturbation_scale : float
-        Standard deviation of the Gaussian noise applied to perturbed
-        centroids, expressed as a fraction of the dataset's std deviation.
-    random_state : int or None
-        Seed for reproducibility.
-    """
 
     def __init__(
         self,
@@ -44,9 +22,6 @@ class ExtremalOptimization:
         self.random_state = random_state
         self.centroids = None
 
-    # ------------------------------------------------------------------
-    # Internal helpers
-    # ------------------------------------------------------------------
 
     def _assign(self, X: np.ndarray, centroids: np.ndarray) -> np.ndarray:
         """Return the cluster label for every point in X."""
@@ -109,16 +84,12 @@ class ExtremalOptimization:
     # ------------------------------------------------------------------
 
     def fit(self, X: np.ndarray):
-        """
-        Run Extremal Optimization to find cluster centroids.
 
-        Returns
-        -------
-        labels : np.ndarray of shape (n_samples,)
-        fitness : float  — final WCSS (lower is better)
-        """
         if self.random_state is not None:
             np.random.seed(self.random_state)
+
+        if isinstance(X, pd.DataFrame):
+            X = X.to_numpy()
 
         # ---- Initialisation: random distinct data points ----
         init_idx = np.random.choice(len(X), self.k, replace=False)

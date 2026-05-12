@@ -1,3 +1,5 @@
+import pandas as pd
+
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
@@ -13,6 +15,10 @@ class KMeans:
     def fit(self, X):
         if self.random_state is not None:
             np.random.seed(self.random_state)
+
+        if isinstance(X, pd.DataFrame):
+            X = X.to_numpy()
+
 
         random_indices = np.random.choice(len(X), self.k, replace=False)
         self.centroids = X[random_indices]

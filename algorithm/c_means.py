@@ -37,6 +37,7 @@ class FuzzyCMeans:
         return inv_dist / np.sum(inv_dist, axis=1, keepdims=True)
 
     def fit(self, X):
+        X = np.asarray(X)
         n_samples = X.shape[0]
         self.U = self.initialize_membership(n_samples)
 
