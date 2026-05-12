@@ -28,6 +28,7 @@ class PSOClustering:
         return np.argmin(distances, axis=1)
 
     def fitness_fn(self, X, centroids):
+        X = np.asarray(X, dtype=np.float64)
 
         labels = self.assign_clusters(X, centroids)
 
@@ -161,3 +162,34 @@ class PSOClustering:
         plt.title("PSO Convergence")
         plt.grid(True, linestyle='--', alpha=0.5)
         plt.show()
+
+    def grid_search(self, X):
+        param_grid = {
+            'w': {0.5, 0.7, 0.9},
+            'c1': {1.5, 2.0},
+            'c2': {1.5, 2.0},
+            'n_particles': {10, 20, 30}
+        }
+
+        best_score = -np.inf
+        best_params = None
+
+        for w in param_grid['w']:
+            for c1 in param_grid['c1']:
+                for c2 in param_grid['c2']:
+                    for n_particles in param_grid['n_particles']:
+                        self.n_particles = n_particles
+
+                        self.w = w
+                        self.c1 = c1
+                        self.c2 = c2
+
+                        self.fit(X)
+                        score = self.final_fitness
+                        print(f"Tested params: w={w}, c1={c1}, c2={c2}, n_particles={n_particles} => silhouette={score:.4f}")
+
+                        if score > best_score:
+                            best_score = score
+                            best_params = (w, c1, c2)
+
+        print(f"Best params: w={best_params[0]}, c1={best_params[1]}, c2={best_params[2]} with silhouette={best_score:.4f}")

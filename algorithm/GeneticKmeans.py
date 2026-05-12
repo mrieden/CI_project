@@ -228,3 +228,68 @@ class GeneticKMeans:
         plt.grid(True, linestyle='--', alpha=0.5)
 
         plt.show()
+
+    def grid_search(self, X):
+
+        param_grid = {
+            'k': [3,4],
+            'population_size': [10, 20, 30],
+            'generations': [50, 100],
+            'mutation_rate': [0.05, 0.1, 0.2],
+            'crossover_rate': [0.7, 0.8, 0.9]
+        }
+
+        best_score = -np.inf
+        best_params = None
+
+        for k in param_grid['k']:
+
+            for population_size in param_grid['population_size']:
+
+                for generations in param_grid['generations']:
+
+                    for mutation_rate in param_grid['mutation_rate']:
+
+                        for crossover_rate in param_grid['crossover_rate']:
+
+                            # update parameters
+                            self.k = k
+                            self.population_size = population_size
+                            self.generations = generations
+                            self.mutation_rate = mutation_rate
+                            self.crossover_rate = crossover_rate
+
+                            # fit model
+                            labels, score = self.fit(X)
+
+                            print(
+                                f"k={k}, "
+                                f"pop={population_size}, "
+                                f"gens={generations}, "
+                                f"mutation={mutation_rate}, "
+                                f"crossover={crossover_rate} "
+                                f"-> silhouette={score:.4f}"
+                            )
+
+                            # save best
+                            if score > best_score:
+
+                                best_score = score
+
+                                best_params = {
+                                    'k': k,
+                                    'population_size': population_size,
+                                    'generations': generations,
+                                    'mutation_rate': mutation_rate,
+                                    'crossover_rate': crossover_rate
+                                }
+
+        print("\nBest Parameters:")
+        print(best_params)
+
+        print(
+            f"Best Silhouette Score: "
+            f"{best_score:.4f}"
+        )
+
+        return best_params, best_score

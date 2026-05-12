@@ -193,3 +193,59 @@ class ExtremalOptimization:
         plt.grid(True, linestyle="--", alpha=0.5)
 
         plt.show()
+
+
+    def grid_search(self, X):
+
+        param_grid = {
+            'k': [3, 4],
+            'max_iters': [100],
+            'tau': [1.2, 1.5, 2.0],
+            'perturbation_scale': [0.1, 0.3, 0.5]
+        }
+
+        best_score = -np.inf
+        best_params = None
+
+        for k in param_grid['k']:
+
+            for max_iters in param_grid['max_iters']:
+
+                for tau in param_grid['tau']:
+
+                    for perturbation_scale in param_grid['perturbation_scale']:
+
+                        # update hyperparameters
+                        self.k = k
+                        self.max_iters = max_iters
+                        self.tau = tau
+                        self.perturbation_scale = perturbation_scale
+
+                        # run EO
+                        labels, score = self.fit(X)
+
+                        print(
+                            f"k={k}, "
+                            f"iters={max_iters}, "
+                            f"tau={tau}, "
+                            f"perturb={perturbation_scale} "
+                            f"-> silhouette={score:.4f}"
+                        )
+
+                        # track best
+                        if score > best_score:
+                            best_score = score
+                            best_params = {
+                                "k": k,
+                                "max_iters": max_iters,
+                                "tau": tau,
+                                "perturbation_scale": perturbation_scale
+                            }
+
+        print("\nBest Parameters:")
+        print(best_params)
+
+        print(f"Best Silhouette Score: {best_score:.4f}")
+
+        return best_params, best_score
+
