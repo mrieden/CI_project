@@ -1,0 +1,73 @@
+PSO finished — silhouette: 0.2873
+Tested params: w=0.5, c1=1.5, c2=1.5, n_particles=10 => silhouette=0.2873
+PSO finished — silhouette: 0.2802
+Tested params: w=0.5, c1=1.5, c2=1.5, n_particles=20 => silhouette=0.2802
+PSO finished — silhouette: 0.2647
+Tested params: w=0.5, c1=1.5, c2=1.5, n_particles=30 => silhouette=0.2647
+PSO finished — silhouette: 0.2938
+Tested params: w=0.5, c1=1.5, c2=2.0, n_particles=10 => silhouette=0.2938
+PSO finished — silhouette: 0.2838
+Tested params: w=0.5, c1=1.5, c2=2.0, n_particles=20 => silhouette=0.2838
+PSO finished — silhouette: 0.2774
+Tested params: w=0.5, c1=1.5, c2=2.0, n_particles=30 => silhouette=0.2774
+PSO finished — silhouette: 0.2999
+Tested params: w=0.5, c1=2.0, c2=1.5, n_particles=10 => silhouette=0.2999
+PSO finished — silhouette: 0.2865
+Tested params: w=0.5, c1=2.0, c2=1.5, n_particles=20 => silhouette=0.2865
+PSO finished — silhouette: 0.2756
+Tested params: w=0.5, c1=2.0, c2=1.5, n_particles=30 => silhouette=0.2756
+PSO finished — silhouette: 0.2946
+Tested params: w=0.5, c1=2.0, c2=2.0, n_particles=10 => silhouette=0.2946
+PSO finished — silhouette: 0.2805
+Tested params: w=0.5, c1=2.0, c2=2.0, n_particles=20 => silhouette=0.2805
+PSO finished — silhouette: 0.2790
+Tested params: w=0.5, c1=2.0, c2=2.0, n_particles=30 => silhouette=0.2790
+PSO finished — silhouette: 0.2885
+Tested params: w=0.7, c1=1.5, c2=1.5, n_particles=10 => silhouette=0.2885
+PSO finished — silhouette: 0.2831
+Tested params: w=0.7, c1=1.5, c2=1.5, n_particles=20 => silhouette=0.2831
+PSO finished — silhouette: 0.2759
+Tested params: w=0.7, c1=1.5, c2=1.5, n_particles=30 => silhouette=0.2759
+PSO finished — silhouette: 0.2891
+Tested params: w=0.7, c1=1.5, c2=2.0, n_particles=10 => silhouette=0.2891
+PSO finished — silhouette: 0.2854
+Tested params: w=0.7, c1=1.5, c2=2.0, n_particles=20 => silhouette=0.2854
+PSO finished — silhouette: 0.2805
+Tested params: w=0.7, c1=1.5, c2=2.0, n_particles=30 => silhouette=0.2805
+PSO finished — silhouette: 0.2975
+Tested params: w=0.7, c1=2.0, c2=1.5, n_particles=10 => silhouette=0.2975
+PSO finished — silhouette: 0.2872
+Tested params: w=0.7, c1=2.0, c2=1.5, n_particles=20 => silhouette=0.2872
+PSO finished — silhouette: 0.2841
+Tested params: w=0.7, c1=2.0, c2=1.5, n_particles=30 => silhouette=0.2841
+PSO finished — silhouette: 0.2917
+Tested params: w=0.7, c1=2.0, c2=2.0, n_particles=10 => silhouette=0.2917
+PSO finished — silhouette: 0.2803
+Tested params: w=0.7, c1=2.0, c2=2.0, n_particles=20 => silhouette=0.2803
+PSO finished — silhouette: 0.2793
+Tested params: w=0.7, c1=2.0, c2=2.0, n_particles=30 => silhouette=0.2793
+PSO finished — silhouette: 0.2983
+Tested params: w=0.9, c1=1.5, c2=1.5, n_particles=10 => silhouette=0.2983
+PSO finished — silhouette: 0.2889
+Tested params: w=0.9, c1=1.5, c2=1.5, n_particles=20 => silhouette=0.2889
+PSO finished — silhouette: 0.2686
+Tested params: w=0.9, c1=1.5, c2=1.5, n_particles=30 => silhouette=0.2686
+PSO finished — silhouette: 0.2981
+Tested params: w=0.9, c1=1.5, c2=2.0, n_particles=10 => silhouette=0.2981
+PSO finished — silhouette: 0.2881
+Tested params: w=0.9, c1=1.5, c2=2.0, n_particles=20 => silhouette=0.2881
+PSO finished — silhouette: 0.2855
+Tested params: w=0.9, c1=1.5, c2=2.0, n_particles=30 => silhouette=0.2855
+PSO finished — silhouette: 0.3004
+Tested params: w=0.9, c1=2.0, c2=1.5, n_particles=10 => silhouette=0.3004
+PSO finished — silhouette: 0.2774
+Tested params: w=0.9, c1=2.0, c2=1.5, n_particles=20 => silhouette=0.2774
+PSO finished — silhouette: 0.2732
+Tested params: w=0.9, c1=2.0, c2=1.5, n_particles=30 => silhouette=0.2732
+PSO finished — silhouette: 0.2994
+Tested params: w=0.9, c1=2.0, c2=2.0, n_particles=10 => silhouette=0.2994
+PSO finished — silhouette: 0.2857
+Tested params: w=0.9, c1=2.0, c2=2.0, n_particles=20 => silhouette=0.2857
+PSO finished — silhouette: 0.2785
+Tested params: w=0.9, c1=2.0, c2=2.0, n_particles=30 => silhouette=0.2785
+Best params: w=0.9, c1=2.0, c2=1.5 with silhouette=0.3004

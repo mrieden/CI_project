@@ -1,0 +1,42 @@
+EO finished — silhouette: 0.2363
+k=3, iters=100, tau=1.2, perturb=0.1 -> silhouette=0.2363
+EO finished — silhouette: 0.2490
+k=3, iters=100, tau=1.2, perturb=0.3 -> silhouette=0.2490
+EO finished — silhouette: 0.2305
+k=3, iters=100, tau=1.2, perturb=0.5 -> silhouette=0.2305
+EO finished — silhouette: 0.2363
+k=3, iters=100, tau=1.5, perturb=0.1 -> silhouette=0.2363
+EO finished — silhouette: 0.2490
+k=3, iters=100, tau=1.5, perturb=0.3 -> silhouette=0.2490
+EO finished — silhouette: 0.2305
+k=3, iters=100, tau=1.5, perturb=0.5 -> silhouette=0.2305
+EO finished — silhouette: 0.2363
+k=3, iters=100, tau=2.0, perturb=0.1 -> silhouette=0.2363
+EO finished — silhouette: 0.2398
+k=3, iters=100, tau=2.0, perturb=0.3 -> silhouette=0.2398
+EO finished — silhouette: 0.2408
+k=3, iters=100, tau=2.0, perturb=0.5 -> silhouette=0.2408
+EO finished — silhouette: 0.1955
+k=4, iters=100, tau=1.2, perturb=0.1 -> silhouette=0.1955
+EO finished — silhouette: 0.1957
+k=4, iters=100, tau=1.2, perturb=0.3 -> silhouette=0.1957
+EO finished — silhouette: 0.1880
+k=4, iters=100, tau=1.2, perturb=0.5 -> silhouette=0.1880
+EO finished — silhouette: 0.2066
+k=4, iters=100, tau=1.5, perturb=0.1 -> silhouette=0.2066
+EO finished — silhouette: 0.1864
+k=4, iters=100, tau=1.5, perturb=0.3 -> silhouette=0.1864
+EO finished — silhouette: 0.2040
+k=4, iters=100, tau=1.5, perturb=0.5 -> silhouette=0.2040
+EO finished — silhouette: 0.1908
+k=4, iters=100, tau=2.0, perturb=0.1 -> silhouette=0.1908
+EO finished — silhouette: 0.2128
+k=4, iters=100, tau=2.0, perturb=0.3 -> silhouette=0.2128
+EO finished — silhouette: 0.2071
+k=4, iters=100, tau=2.0, perturb=0.5 -> silhouette=0.2071
+
+Best Parameters:
+{'k': 3, 'max_iters': 100, 'tau': 1.2, 'perturbation_scale': 0.3}
+Best Silhouette Score: 0.2490
+Best Hyperparameters: {'k': 3, 'max_iters': 100, 'tau': 1.2, 'perturbation_scale': 0.3}
+Best Silhouette Score: 0.24901020322660358

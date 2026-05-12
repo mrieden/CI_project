@@ -264,68 +264,67 @@ class ImperialistCompetitiveClustering:
         plt.show()
 
 
-    def grid_search(self, X):
+    def grid_search(self, X, param_grid=None):
 
-        param_grid = {
-            'k': [3, 4],
-            'n_countries': [30, 50, 80],
-            'n_imperialists': [3, 5, 7],
-            'assimilation_coef': [1.0, 1.5, 2.0],
-            'revolution_rate': [0.05, 0.1, 0.2],
-            'beta': [1.0, 2.0, 3.0]
-        }
-        self.max_iter = 100
+        # param_grid = {
+        #     # 'k': [3, 4],
+        #     'n_countries': [30, 50],
+        #     'n_imperialists': [3, 5],
+        #     'assimilation_coef': [1.0, 1.5],
+        #     'revolution_rate': [0.05, 0.1],
+        #     'beta': [1.0, 2.0]
+        # }
+        self.max_iter = 50
 
         best_score = -np.inf
         best_params = None
+        self.k = 3  
 
-        for k in param_grid['k']:
+        # for k in param_grid['k']:
 
-            for n_countries in param_grid['n_countries']:
+        for n_countries in param_grid['n_countries']:
 
-                for n_imperialists in param_grid['n_imperialists']:
+            for n_imperialists in param_grid['n_imperialists']:
 
-                    for assimilation_coef in param_grid['assimilation_coef']:
+                for assimilation_coef in param_grid['assimilation_coef']:
 
-                        for revolution_rate in param_grid['revolution_rate']:
+                    for revolution_rate in param_grid['revolution_rate']:
 
-                            for beta in param_grid['beta']:
+                        for beta in param_grid['beta']:
 
-                                # update parameters
-                                self.k = k
-                                self.n_countries = n_countries
-                                self.n_imperialists = n_imperialists
-                                self.assimilation_coef = assimilation_coef
-                                self.revolution_rate = revolution_rate
-                                self.beta = beta
+                            # update parameters
+                            # self.k = k
+                            self.n_countries = n_countries
+                            self.n_imperialists = n_imperialists
+                            self.assimilation_coef = assimilation_coef
+                            self.revolution_rate = revolution_rate
+                            self.beta = beta
 
-                                # run model
-                                self.fit(X)
+                            # run model
+                            self.fit(X)
 
-                                score = self.best_fitness
+                            score = self.best_fitness
 
-                                print(
-                                    f"k={k}, "
-                                    f"countries={n_countries}, "
-                                    f"imp={n_imperialists}, "
-                                    f"iter={max_iter}, "
-                                    f"assim={assimilation_coef}, "
-                                    f"rev={revolution_rate}, "
-                                    f"beta={beta} "
-                                    f"-> silhouette={score:.4f}"
-                                )
+                            print(
+                                f"k={self.k}, "
+                                f"countries={n_countries}, "
+                                f"imp={n_imperialists}, "
+                                f"assim={assimilation_coef}, "
+                                f"rev={revolution_rate}, "
+                                f"beta={beta} "
+                                f"-> silhouette={score:.4f}"
+                            )
 
-                                if score > best_score:
-                                    best_score = score
-                                    best_params = {
-                                        'k': k,
-                                        'n_countries': n_countries,
-                                        'n_imperialists': n_imperialists,
-                                        'max_iter': max_iter,
-                                        'assimilation_coef': assimilation_coef,
-                                        'revolution_rate': revolution_rate,
-                                        'beta': beta
-                                    }
+                            if score > best_score:
+                                best_score = score
+                                best_params = {
+                                    'k': self.k,
+                                    'n_countries': n_countries,
+                                    'n_imperialists': n_imperialists,
+                                    'assimilation_coef': assimilation_coef,
+                                    'revolution_rate': revolution_rate,
+                                    'beta': beta
+                                }
 
         print("\nBest Parameters:")
         print(best_params)

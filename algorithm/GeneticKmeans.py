@@ -127,6 +127,7 @@ class GeneticKMeans:
             self._kmeans_plus_plus(X)
             for _ in range(self.population_size)
         ])
+        no_improvement_count = 0
 
         best_fitness = -1
         best_centroids = None
@@ -136,6 +137,8 @@ class GeneticKMeans:
 
             fitness_scores = []
             labels_list = []
+
+            gen_best_fitness = -1
 
             for individual in population:
 
@@ -148,6 +151,16 @@ class GeneticKMeans:
                     best_fitness = fitness
                     best_centroids = individual.copy()
                     best_labels = labels.copy()
+
+            # ---- Early stopping check ----
+            if gen_best_fitness <= best_fitness:
+                no_improvement_count += 1
+            else:
+                no_improvement_count = 0
+
+            if no_improvement_count >= 5:
+                print(f"Early stopping at generation {gen + 1} (no improvement for 5 generations)")
+                break
 
             new_population = []
 
@@ -229,60 +242,62 @@ class GeneticKMeans:
 
         plt.show()
 
-    def grid_search(self, X):
+    def grid_search(self, X, param_grid=None):
 
-        param_grid = {
-            'k': [3,4],
-            'population_size': [10, 20, 30],
-            'generations': [50, 100],
-            'mutation_rate': [0.05, 0.1, 0.2],
-            'crossover_rate': [0.7, 0.8, 0.9]
-        }
+        # param_grid = {
+        #     'k': [3,4],
+        #     'population_size': [10, 20, 30],
+        #     'generations': [50, 20],
+        #     'mutation_rate': [0.05, 0.1, 0.2],
+        #     'crossover_rate': [0.7, 0.8, 0.9]
+        # }
 
         best_score = -np.inf
         best_params = None
+        k =3
+        self.k = k
 
-        for k in param_grid['k']:
+        
 
-            for population_size in param_grid['population_size']:
+        for population_size in param_grid['population_size']:
 
-                for generations in param_grid['generations']:
+            for generations in param_grid['generations']:
 
-                    for mutation_rate in param_grid['mutation_rate']:
+                for mutation_rate in param_grid['mutation_rate']:
 
-                        for crossover_rate in param_grid['crossover_rate']:
+                    for crossover_rate in param_grid['crossover_rate']:
 
-                            # update parameters
-                            self.k = k
-                            self.population_size = population_size
-                            self.generations = generations
-                            self.mutation_rate = mutation_rate
-                            self.crossover_rate = crossover_rate
+                        # update parameters
+                        self.k = k
+                        self.population_size = population_size
+                        self.generations = generations
+                        self.mutation_rate = mutation_rate
+                        self.crossover_rate = crossover_rate
 
-                            # fit model
-                            labels, score = self.fit(X)
+                        # fit model
+                        labels, score = self.fit(X)
 
-                            print(
-                                f"k={k}, "
-                                f"pop={population_size}, "
-                                f"gens={generations}, "
-                                f"mutation={mutation_rate}, "
-                                f"crossover={crossover_rate} "
-                                f"-> silhouette={score:.4f}"
-                            )
+                        print(
+                            f"k={k}, "
+                            f"pop={population_size}, "
+                            f"gens={generations}, "
+                            f"mutation={mutation_rate}, "
+                            f"crossover={crossover_rate} "
+                            f"-> silhouette={score:.4f}"
+                        )
 
-                            # save best
-                            if score > best_score:
+                        # save best
+                        if score > best_score:
 
-                                best_score = score
+                            best_score = score
 
-                                best_params = {
-                                    'k': k,
-                                    'population_size': population_size,
-                                    'generations': generations,
-                                    'mutation_rate': mutation_rate,
-                                    'crossover_rate': crossover_rate
-                                }
+                            best_params = {
+                                'k': k,
+                                'population_size': population_size,
+                                'generations': generations,
+                                'mutation_rate': mutation_rate,
+                                'crossover_rate': crossover_rate
+                            }
 
         print("\nBest Parameters:")
         print(best_params)

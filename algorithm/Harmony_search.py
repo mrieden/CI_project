@@ -114,15 +114,15 @@ class HarmonySearchClustering:
         plt.show()
 
 
-    def grid_search(self, X):
+    def grid_search(self, X, param_grid=None):
         best_score = -np.inf
         best_params = None
-        param_grid = {
-            'hmcr': [0.7, 0.8, 0.9 ],
-            'par': [0.1, 0.3, 0.5],
-            'bw': [0.01, 0.05, 0.1],
-            'hms': [20, 50, 100]
-        }
+        # param_grid = {
+        #     'hmcr': [ 0.8, 0.9 ],
+        #     'par': [0.1, 0.3],
+        #     'bw': [0.05, 0.1],
+        #     'hms': [20, 50]
+        # }
 
         for hmcr in param_grid['hmcr']:
             for par in param_grid['par']:
