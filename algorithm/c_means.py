@@ -1,25 +1,27 @@
 from sklearn.decomposition import PCA
+from sklearn.metrics import silhouette_score
 import numpy as np
 import matplotlib.pyplot as plt
+
 
 class FuzzyCMeans:
     def __init__(self, k=3, m=2.0, max_iters=100, tol=1e-4, random_state=None):
         self.k = k
-        self.m = m  # fuzziness parameter
+        self.m = m
         self.max_iters = max_iters
         self.tol = tol
         self.random_state = random_state
 
         self.centers = None
-        self.U = None  # membership matrix
+        self.U = None
+        self.fitness_score = None
 
     def initialize_membership(self, n_samples):
         if self.random_state is not None:
             np.random.seed(self.random_state)
 
         U = np.random.rand(n_samples, self.k)
-        U = U / np.sum(U, axis=1, keepdims=True)
-        return U
+        return U / np.sum(U, axis=1, keepdims=True)
 
     def update_centers(self, X):
         um = self.U ** self.m
@@ -27,8 +29,6 @@ class FuzzyCMeans:
 
     def update_membership(self, X):
         dist = np.linalg.norm(X[:, np.newaxis] - self.centers, axis=2)
-
-        # avoid division by zero
         dist = np.fmax(dist, 1e-10)
 
         power = 2 / (self.m - 1)
@@ -37,64 +37,62 @@ class FuzzyCMeans:
         return inv_dist / np.sum(inv_dist, axis=1, keepdims=True)
 
     def fit(self, X):
+
         X = np.asarray(X)
         n_samples = X.shape[0]
+
         self.U = self.initialize_membership(n_samples)
 
         for i in range(self.max_iters):
             old_U = self.U.copy()
 
-            # Update centers
             self.centers = self.update_centers(X)
-
-            # Update membership
             self.U = self.update_membership(X)
 
-            # Convergence check
             if np.linalg.norm(self.U - old_U) < self.tol:
                 print(f"Converged at iteration {i}")
                 break
 
-        # compute final labels (optional hard assignment)
+        # ===== HARD LABELS FOR COMPARISON =====
         labels = np.argmax(self.U, axis=1)
 
-        # compute fitness
-        fitness = self.fitness(X)
+        # ===== SHARED FITNESS (SILHOUETTE) =====
+        unique_labels = np.unique(labels)
+
+        if len(unique_labels) > 1:
+            fitness = silhouette_score(X, labels)
+        else:
+            fitness = -1
+
+        self.fitness_score = fitness
 
         return labels, fitness
 
-    def fitness(self, X):
-        """
-        Fuzzy C-Means objective function:
-        J = sum(u_ij^m * ||x_i - c_j||^2)
-        """
-        dist = np.linalg.norm(X[:, np.newaxis] - self.centers, axis=2) ** 2
-        return np.sum((self.U ** self.m) * dist)
-    
-
-
     def plot_membership_intensity(self, X):
+
         pca = PCA(n_components=2)
         X_pca = pca.fit_transform(X)
         centers_pca = pca.transform(self.centers)
+
+        labels = np.argmax(self.U, axis=1)
 
         plt.figure(figsize=(8, 6))
 
         colors = plt.cm.get_cmap("tab10", self.k)
 
         for j in range(self.k):
+
             cluster_points = X_pca
 
             plt.scatter(
                 cluster_points[:, 0],
                 cluster_points[:, 1],
                 color=colors(j),
-                alpha=self.U[:, j],  # membership intensity
+                alpha=self.U[:, j],
                 s=30,
                 label=f"Cluster {j}"
             )
 
-        # plot centers
         plt.scatter(
             centers_pca[:, 0],
             centers_pca[:, 1],
@@ -105,18 +103,17 @@ class FuzzyCMeans:
             label='Cluster Centers'
         )
 
-        plt.title("Fuzzy C-Means Membership Intensity")
+        plt.title(
+            f"Fuzzy C-Means "
+            f"(Silhouette = {self.fitness_score:.4f})"
+        )
+
         plt.xlabel("Principal Component 1")
         plt.ylabel("Principal Component 2")
 
-        plt.legend(
-            title="Legend",
-            loc="best"
-        )
-
+        plt.legend()
         plt.grid(True, linestyle="--", alpha=0.5)
 
-        # 👇 ADD EXPLANATION TEXT ON PLOT
         plt.text(
             0.02, 0.02,
             "Color = Cluster Identity\nTransparency = Membership Strength",

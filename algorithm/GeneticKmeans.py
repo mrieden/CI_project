@@ -1,10 +1,13 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+
 from sklearn.decomposition import PCA
+from sklearn.metrics import silhouette_score
 
 
 class GeneticKMeans:
+
     def __init__(
         self,
         k=3,
@@ -20,9 +23,15 @@ class GeneticKMeans:
         self.mutation_rate = mutation_rate
         self.crossover_rate = crossover_rate
         self.random_state = random_state
-        self.centroids = None
 
+        self.centroids = None
+        self.fitness = None
+
+    # -------------------------
+    # kmeans++ initialization
+    # -------------------------
     def _kmeans_plus_plus(self, X):
+
         n_samples = X.shape[0]
 
         centroids = []
@@ -38,12 +47,15 @@ class GeneticKMeans:
             ])
 
             probabilities = distances / distances.sum()
-
             next_idx = np.random.choice(n_samples, p=probabilities)
+
             centroids.append(X[next_idx])
 
         return np.array(centroids)
 
+    # -------------------------
+    # ASSIGN + SILHOUETTE FITNESS
+    # -------------------------
     def _fitness(self, X, centroids):
 
         distances = np.linalg.norm(
@@ -53,55 +65,56 @@ class GeneticKMeans:
 
         labels = np.argmin(distances, axis=1)
 
-        wcss = 0
+        unique = np.unique(labels)
 
-        for j in range(self.k):
-            cluster_points = X[labels == j]
+        if len(unique) > 1:
+            score = silhouette_score(X, labels)
+        else:
+            score = -1
 
-            if len(cluster_points) > 0:
-                wcss += np.sum(
-                    (cluster_points - centroids[j]) ** 2
-                )
+        return score, labels
 
-        return wcss, labels
-
+    # -------------------------
+    # SELECTION (MAXIMIZE NOW)
+    # -------------------------
     def _selection(self, population, fitness_scores):
 
-        idx1, idx2 = np.random.choice(
-            len(population),
-            2,
-            replace=False
-        )
+        idx1, idx2 = np.random.choice(len(population), 2, replace=False)
 
-        if fitness_scores[idx1] < fitness_scores[idx2]:
+        if fitness_scores[idx1] > fitness_scores[idx2]:
             return population[idx1]
         else:
             return population[idx2]
 
-
+    # -------------------------
+    # CROSSOVER
+    # -------------------------
     def _crossover(self, parent1, parent2):
 
         child = parent1.copy()
 
         for i in range(self.k):
-
             if np.random.rand() < 0.5:
                 child[i] = parent2[i]
 
         return child
 
+    # -------------------------
+    # MUTATION
+    # -------------------------
     def _mutation(self, child, X):
 
         for i in range(self.k):
 
             if np.random.rand() < self.mutation_rate:
-
-                random_idx = np.random.randint(len(X))
-                child[i] = X[random_idx]
+                idx = np.random.randint(len(X))
+                child[i] = X[idx]
 
         return child
 
-
+    # -------------------------
+    # FIT
+    # -------------------------
     def fit(self, X):
 
         if self.random_state is not None:
@@ -115,11 +128,11 @@ class GeneticKMeans:
             for _ in range(self.population_size)
         ])
 
-        best_fitness = float("inf")
+        best_fitness = -1
         best_centroids = None
         best_labels = None
 
-        for generation in range(self.generations):
+        for gen in range(self.generations):
 
             fitness_scores = []
             labels_list = []
@@ -131,7 +144,7 @@ class GeneticKMeans:
                 fitness_scores.append(fitness)
                 labels_list.append(labels)
 
-                if fitness < best_fitness:
+                if fitness > best_fitness:
                     best_fitness = fitness
                     best_centroids = individual.copy()
                     best_labels = labels.copy()
@@ -148,7 +161,6 @@ class GeneticKMeans:
                 else:
                     child = parent1.copy()
 
-                # Mutation
                 child = self._mutation(child, X)
 
                 new_population.append(child)
@@ -156,33 +168,31 @@ class GeneticKMeans:
             population = np.array(new_population)
 
             print(
-                f"Generation {generation + 1} "
-                f"| Best Fitness: {best_fitness:.4f}"
+                f"Generation {gen + 1} "
+                f"| Best Silhouette: {best_fitness:.4f}"
             )
 
         self.centroids = best_centroids
+        self.fitness = best_fitness
 
         return best_labels, best_fitness
 
+    # -------------------------
+    # PLOT
+    # -------------------------
     def plot_clusters(self, X, labels):
 
         if isinstance(X, pd.DataFrame):
             X = X.to_numpy()
 
         pca = PCA(n_components=2)
-
         X_pca = pca.fit_transform(X)
-
         centroids_pca = pca.transform(self.centroids)
 
         plt.figure(figsize=(8, 6))
 
         unique_labels = np.unique(labels)
-
-        colors = plt.cm.get_cmap(
-            "viridis",
-            len(unique_labels)
-        )
+        colors = plt.cm.get_cmap("viridis", len(unique_labels))
 
         for i, label in enumerate(unique_labels):
 
@@ -206,12 +216,15 @@ class GeneticKMeans:
             label='Centroids'
         )
 
-        plt.title("Genetic Algorithm Clustering")
+        plt.title(
+            f"Genetic Clustering "
+            f"(Silhouette = {self.fitness:.4f})"
+        )
+
         plt.xlabel("Principal Component 1")
         plt.ylabel("Principal Component 2")
 
         plt.legend()
-
         plt.grid(True, linestyle='--', alpha=0.5)
 
         plt.show()
