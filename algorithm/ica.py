@@ -30,30 +30,27 @@ class ImperialistCompetitiveClustering:
         self.history = []
 
         self.best_centroids = None
-        self.best_fitness = -np.inf  # silhouette is maximised
-
+        self.best_fitness = -np.inf
 
     def assign_clusters(self, X, centroids):
         distances = np.linalg.norm(X[:, np.newaxis] - centroids, axis=2)
         return np.argmin(distances, axis=1)
 
     def fitness_fn(self, X, centroids):
-        labels = self.assign_clusters(X, centroids)
         X = np.asarray(X, dtype=np.float64)
+
+        if len(X) > self.sample_size:
+            idx = np.random.choice(len(X), self.sample_size, replace=False)
+            X_eval = X[idx]
+            labels = self.assign_clusters(X_eval, centroids)
+        else:
+            X_eval = X
+            labels = self.assign_clusters(X, centroids)
 
         if len(np.unique(labels)) < 2:
             return -0.5
 
-        if len(X) > self.sample_size:
-            idx = np.random.choice(len(X), self.sample_size, replace=False)
-            sampled_labels = labels[idx]
-            # Re-check after sampling — the subset may still collapse to 1 cluster
-            if len(np.unique(sampled_labels)) < 2:
-                return -0.5
-            return silhouette_score(X[idx], sampled_labels)
-
-        return silhouette_score(X, labels)
-
+        return silhouette_score(X_eval, labels)
 
     def initialize_countries(self, X):
         n_feat = X.shape[1]
@@ -63,7 +60,6 @@ class ImperialistCompetitiveClustering:
         return countries, fitness
 
     def form_empires(self, countries, fitness):
-        # Higher silhouette = stronger imperialist → sort descending
         sorted_idx = np.argsort(fitness)[::-1]
         imperialists = countries[sorted_idx[: self.n_imperialists]]
         imperialist_fit = fitness[sorted_idx[: self.n_imperialists]]
@@ -71,7 +67,6 @@ class ImperialistCompetitiveClustering:
         colonies = countries[sorted_idx[self.n_imperialists :]]
         colonies_fit = fitness[sorted_idx[self.n_imperialists :]]
 
-        # Power proportional to fitness (already positive-oriented)
         power = imperialist_fit - np.min(imperialist_fit) + 1e-9
         n_colonies = np.round((power / power.sum()) * len(colonies)).astype(int)
 
@@ -130,18 +125,15 @@ class ImperialistCompetitiveClustering:
         total_powers = []
         for e in empires:
             if len(e["colonies_fit"]) > 0:
-                # Higher = stronger; use mean of colony fitness
                 total_power = e["imperialist_fit"] + self.beta * np.mean(e["colonies_fit"])
             else:
                 total_power = e["imperialist_fit"]
             total_powers.append(total_power)
 
-        # Weakest empire has the lowest total power
         weakest_idx = np.argmin(total_powers)
         strongest_idx = np.argmax(total_powers)
 
         if len(empires[weakest_idx]["colonies"]) > 0:
-            # Take the worst colony from the weakest empire
             w_col_idx = np.argmin(empires[weakest_idx]["colonies_fit"])
             colony = empires[weakest_idx]["colonies"][w_col_idx]
             colony_fit = empires[weakest_idx]["colonies_fit"][w_col_idx]
@@ -171,7 +163,6 @@ class ImperialistCompetitiveClustering:
         countries, fitness = self.initialize_countries(X)
         empires = self.form_empires(countries, fitness)
 
-        # Track global best across ALL iterations
         global_best_centroids = None
         global_best_fitness = -np.inf
 
@@ -199,12 +190,11 @@ class ImperialistCompetitiveClustering:
 
             best_emp = max(empires, key=lambda e: e["imperialist_fit"])
 
-            # Update global best if improved
             if best_emp["imperialist_fit"] > global_best_fitness:
                 global_best_fitness = best_emp["imperialist_fit"]
                 global_best_centroids = best_emp["imperialist"].copy()
 
-            self.history.append(global_best_fitness)  
+            self.history.append(global_best_fitness)
 
         self.best_centroids = global_best_centroids
         self.best_fitness = global_best_fitness
@@ -264,70 +254,131 @@ class ImperialistCompetitiveClustering:
         plt.show()
 
 
-    def grid_search(self, X, param_grid=None):
+def grid_search(
+    X,
+    k_values=range(2, 9),
+    n_countries_values=(30, 50),
+    n_imperialists_values=(3, 5),
+    assimilation_coef_values=(1.0, 1.5),
+    revolution_rate_values=(0.05, 0.1),
+    beta_values=(1.0, 2.0),
+    max_iter=50,
+    n_runs=3,
+    random_state=None,
+    verbose=True,
+    plot=True,
+):
+    if isinstance(X, pd.DataFrame):
+        X_arr = X.to_numpy()
+    else:
+        X_arr = np.asarray(X)
 
-        # param_grid = {
-        #     # 'k': [3, 4],
-        #     'n_countries': [30, 50],
-        #     'n_imperialists': [3, 5],
-        #     'assimilation_coef': [1.0, 1.5],
-        #     'revolution_rate': [0.05, 0.1],
-        #     'beta': [1.0, 2.0]
-        # }
-        self.max_iter = 50
+    records = []
+    best_score = -np.inf
+    best_model = None
+    best_labels = None
 
-        best_score = -np.inf
-        best_params = None
-        self.k = 3  
+    for k in k_values:
+        for n_countries in n_countries_values:
+            for n_imperialists in n_imperialists_values:
+                for assimilation_coef in assimilation_coef_values:
+                    for revolution_rate in revolution_rate_values:
+                        for beta in beta_values:
+                            for run in range(n_runs):
+                                seed = (
+                                    None
+                                    if random_state is None
+                                    else random_state + run
+                                )
+                                model = ImperialistCompetitiveClustering(
+                                    k=k,
+                                    n_countries=n_countries,
+                                    n_imperialists=n_imperialists,
+                                    assimilation_coef=assimilation_coef,
+                                    revolution_rate=revolution_rate,
+                                    beta=beta,
+                                    max_iter=max_iter,
+                                    random_state=seed,
+                                )
+                                model.fit(X_arr)
+                                score = model.best_fitness
+                                labels = model.predict(X_arr)
 
-        # for k in param_grid['k']:
+                                records.append(dict(
+                                    k=k,
+                                    n_countries=n_countries,
+                                    n_imperialists=n_imperialists,
+                                    assimilation_coef=assimilation_coef,
+                                    revolution_rate=revolution_rate,
+                                    beta=beta,
+                                    run=run,
+                                    silhouette_score=score,
+                                ))
 
-        for n_countries in param_grid['n_countries']:
+                                if score > best_score:
+                                    best_score = score
+                                    best_model = model
+                                    best_labels = labels
 
-            for n_imperialists in param_grid['n_imperialists']:
+    results = pd.DataFrame(records)
 
-                for assimilation_coef in param_grid['assimilation_coef']:
+    if verbose:
+        summary = (
+            results
+            .groupby([
+                "k", "n_countries", "n_imperialists",
+                "assimilation_coef", "revolution_rate", "beta"
+            ])["silhouette_score"]
+            .max()
+            .reset_index()
+            .sort_values("silhouette_score", ascending=False)
+        )
+        print("\n=== Grid Search Results (best run per combination) ===")
+        print(summary.to_string(index=False))
+        print(
+            f"\nBest: k={best_model.k}, "
+            f"n_countries={best_model.n_countries}, "
+            f"n_imperialists={best_model.n_imperialists}, "
+            f"assimilation_coef={best_model.assimilation_coef}, "
+            f"revolution_rate={best_model.revolution_rate}, "
+            f"beta={best_model.beta}"
+            f"  →  silhouette={best_score:.4f}"
+        )
 
-                    for revolution_rate in param_grid['revolution_rate']:
+    if plot:
+        plt.figure(figsize=(8, 4))
+        colors = plt.cm.get_cmap("tab10", len(list(revolution_rate_values)))
 
-                        for beta in param_grid['beta']:
+        for idx, rr in enumerate(revolution_rate_values):
+            best_per_k = (
+                results[results["revolution_rate"] == rr]
+                .groupby("k")["silhouette_score"]
+                .max()
+                .reset_index()
+            )
+            plt.plot(
+                best_per_k["k"],
+                best_per_k["silhouette_score"],
+                marker="o",
+                linewidth=2,
+                color=colors(idx),
+                label=f"revolution_rate={rr}",
+            )
 
-                            # update parameters
-                            # self.k = k
-                            self.n_countries = n_countries
-                            self.n_imperialists = n_imperialists
-                            self.assimilation_coef = assimilation_coef
-                            self.revolution_rate = revolution_rate
-                            self.beta = beta
+        plt.axvline(
+            best_model.k,
+            color="red",
+            linestyle="--",
+            alpha=0.7,
+            label=f"Best k={best_model.k}",
+        )
+        plt.title("Grid Search: Silhouette Score vs k")
+        plt.xlabel("k (number of clusters)")
+        plt.ylabel("Best Silhouette Score")
+        plt.xticks(list(k_values))
+        plt.legend()
+        plt.grid(True, linestyle="--", alpha=0.5)
+        plt.tight_layout()
+        plt.show()
 
-                            # run model
-                            self.fit(X)
-
-                            score = self.best_fitness
-
-                            print(
-                                f"k={self.k}, "
-                                f"countries={n_countries}, "
-                                f"imp={n_imperialists}, "
-                                f"assim={assimilation_coef}, "
-                                f"rev={revolution_rate}, "
-                                f"beta={beta} "
-                                f"-> silhouette={score:.4f}"
-                            )
-
-                            if score > best_score:
-                                best_score = score
-                                best_params = {
-                                    'k': self.k,
-                                    'n_countries': n_countries,
-                                    'n_imperialists': n_imperialists,
-                                    'assimilation_coef': assimilation_coef,
-                                    'revolution_rate': revolution_rate,
-                                    'beta': beta
-                                }
-
-        print("\nBest Parameters:")
-        print(best_params)
-        print(f"Best Silhouette Score: {best_score:.4f}")
-
-        return best_params, best_score
+    return best_model, best_labels, results

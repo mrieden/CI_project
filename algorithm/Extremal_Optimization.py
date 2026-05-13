@@ -195,57 +195,114 @@ class ExtremalOptimization:
         plt.show()
 
 
-    def grid_search(self, X):
+def grid_search(
+    X,
+    k_values=range(2, 9),
+    tau_values=(1.2, 1.5, 2.0),
+    perturbation_scale_values=(0.1, 0.3, 0.5),
+    max_iters_values=(300,),
+    n_runs=3,
+    random_state=None,
+    verbose=True,
+    plot=True,
+):
+    if isinstance(X, pd.DataFrame):
+        X_arr = X.to_numpy()
+    else:
+        X_arr = np.asarray(X)
 
-        param_grid = {
-            'k': [3, 4],
-            'max_iters': [100],
-            'tau': [1.2, 1.5, 2.0],
-            'perturbation_scale': [0.1, 0.3, 0.5]
-        }
+    records = []
+    best_score = -np.inf
+    best_model = None
+    best_labels = None
 
-        best_score = -np.inf
-        best_params = None
-
-        for k in param_grid['k']:
-
-            for max_iters in param_grid['max_iters']:
-
-                for tau in param_grid['tau']:
-
-                    for perturbation_scale in param_grid['perturbation_scale']:
-
-                        # update hyperparameters
-                        self.k = k
-                        self.max_iters = max_iters
-                        self.tau = tau
-                        self.perturbation_scale = perturbation_scale
-
-                        # run EO
-                        labels, score = self.fit(X)
-
-                        print(
-                            f"k={k}, "
-                            f"iters={max_iters}, "
-                            f"tau={tau}, "
-                            f"perturb={perturbation_scale} "
-                            f"-> silhouette={score:.4f}"
+    for k in k_values:
+        for tau in tau_values:
+            for perturbation_scale in perturbation_scale_values:
+                for max_iters in max_iters_values:
+                    for run in range(n_runs):
+                        seed = (
+                            None
+                            if random_state is None
+                            else random_state + run
+                        )
+                        model = ExtremalOptimization(
+                            k=k,
+                            max_iters=max_iters,
+                            tau=tau,
+                            perturbation_scale=perturbation_scale,
+                            random_state=seed,
+                        )
+                        labels, score = model.fit(X_arr)
+                        records.append(
+                            dict(
+                                k=k,
+                                tau=tau,
+                                perturbation_scale=perturbation_scale,
+                                max_iters=max_iters,
+                                run=run,
+                                silhouette_score=score,
+                            )
                         )
 
-                        # track best
                         if score > best_score:
                             best_score = score
-                            best_params = {
-                                "k": k,
-                                "max_iters": max_iters,
-                                "tau": tau,
-                                "perturbation_scale": perturbation_scale
-                            }
+                            best_model = model
+                            best_labels = labels
 
-        print("\nBest Parameters:")
-        print(best_params)
+    results = pd.DataFrame(records)
 
-        print(f"Best Silhouette Score: {best_score:.4f}")
+    if verbose:
+        summary = (
+            results
+            .groupby(["k", "tau", "perturbation_scale", "max_iters"])["silhouette_score"]
+            .max()
+            .reset_index()
+            .sort_values("silhouette_score", ascending=False)
+        )
+        print("\n=== Grid Search Results (best run per combination) ===")
+        print(summary.to_string(index=False))
+        print(
+            f"\nBest: k={best_model.k}, tau={best_model.tau}, "
+            f"perturbation_scale={best_model.perturbation_scale}, "
+            f"max_iters={best_model.max_iters}"
+            f"  →  silhouette={best_score:.4f}"
+        )
 
-        return best_params, best_score
+    if plot:
+        plt.figure(figsize=(8, 4))
+        colors = plt.cm.get_cmap("tab10", len(list(tau_values)))
 
+        for idx, tau_val in enumerate(tau_values):
+            best_per_k = (
+                results[results["tau"] == tau_val]
+                .groupby("k")["silhouette_score"]
+                .max()
+                .reset_index()
+            )
+            plt.plot(
+                best_per_k["k"],
+                best_per_k["silhouette_score"],
+                marker="o",
+                linewidth=2,
+                color=colors(idx),
+                label=f"tau={tau_val}",
+            )
+
+        plt.axvline(
+            best_model.k,
+            color="red",
+            linestyle="--",
+            alpha=0.7,
+            label=f"Best k={best_model.k}",
+        )
+        plt.title("Grid Search: Silhouette Score vs k")
+        plt.xlabel("k (number of clusters)")
+        plt.ylabel("Best Silhouette Score")
+        plt.xticks(list(k_values))
+        plt.legend()
+        plt.grid(True, linestyle="--", alpha=0.5)
+        plt.tight_layout()
+        plt.show()
+
+    return best_model, best_labels, results

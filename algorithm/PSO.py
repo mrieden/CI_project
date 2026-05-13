@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 from sklearn.metrics import silhouette_score
@@ -26,20 +27,21 @@ class PSOClustering:
 
         distances = np.linalg.norm(X[:, np.newaxis] - centroids, axis=2)
         return np.argmin(distances, axis=1)
+def fitness_fn(self, X, centroids):
+    X = np.asarray(X, dtype=np.float64)
 
-    def fitness_fn(self, X, centroids):
-        X = np.asarray(X, dtype=np.float64)
-
+    if len(X) > self.sample_size:
+        idx = np.random.choice(len(X), self.sample_size, replace=False)
+        X_eval = X[idx]
+        labels = self.assign_clusters(X_eval, centroids)
+    else:
+        X_eval = X
         labels = self.assign_clusters(X, centroids)
 
-        if len(np.unique(labels)) < 2:
-            return -0.5
+    if len(np.unique(labels)) < 2:
+        return -0.5
 
-        if len(X) > self.sample_size:
-            idx = np.random.choice(len(X), self.sample_size, replace=False)
-            return silhouette_score(X[idx], labels[idx])
-
-        return silhouette_score(X, labels)
+    return silhouette_score(X_eval, labels)
 
     def fit(self, X):
 
@@ -163,33 +165,125 @@ class PSOClustering:
         plt.grid(True, linestyle='--', alpha=0.5)
         plt.show()
 
-    def grid_search(self, X):
-        param_grid = {
-            'w': {0.5, 0.7, 0.9},
-            'c1': {1.5, 2.0},
-            'c2': {1.5, 2.0},
-            'n_particles': {10, 20, 30}
-        }
 
-        best_score = -np.inf
-        best_params = None
+def grid_search(
+    X,
+    k_values=range(2, 9),
+    w_values=(0.5, 0.7, 0.9),
+    c1_values=(1.5, 2.0),
+    c2_values=(1.5, 2.0),
+    n_particles_values=(10, 20, 30),
+    max_iters=100,
+    n_runs=3,
+    random_state=None,
+    verbose=True,
+    plot=True,
+):
 
-        for w in param_grid['w']:
-            for c1 in param_grid['c1']:
-                for c2 in param_grid['c2']:
-                    for n_particles in param_grid['n_particles']:
-                        self.n_particles = n_particles
+    if isinstance(X, pd.DataFrame):
+        X_arr = X.to_numpy()
+    else:
+        X_arr = np.asarray(X, dtype=np.float64)
 
-                        self.w = w
-                        self.c1 = c1
-                        self.c2 = c2
+    records = []
+    best_score = -np.inf
+    best_model = None
+    best_labels = None
 
-                        self.fit(X)
-                        score = self.final_fitness
-                        print(f"Tested params: w={w}, c1={c1}, c2={c2}, n_particles={n_particles} => silhouette={score:.4f}")
+    for k in k_values:
+        for w in w_values:
+            for c1 in c1_values:
+                for c2 in c2_values:
+                    for n_particles in n_particles_values:
+                        for run in range(n_runs):
+                            seed = (
+                                None
+                                if random_state is None
+                                else random_state + run
+                            )
+                            model = PSOClustering(
+                                k=k,
+                                n_particles=n_particles,
+                                max_iters=max_iters,
+                                w=w,
+                                c1=c1,
+                                c2=c2,
+                                random_state=seed,
+                            )
+                            model.fit(X_arr)
+                            score = model.final_fitness
+                            labels = model.predict(X_arr)
 
-                        if score > best_score:
-                            best_score = score
-                            best_params = (w, c1, c2)
+                            records.append(
+                                dict(
+                                    k=k,
+                                    w=w,
+                                    c1=c1,
+                                    c2=c2,
+                                    n_particles=n_particles,
+                                    run=run,
+                                    silhouette_score=score,
+                                )
+                            )
 
-        print(f"Best params: w={best_params[0]}, c1={best_params[1]}, c2={best_params[2]} with silhouette={best_score:.4f}")
+                            if score > best_score:
+                                best_score = score
+                                best_model = model
+                                best_labels = labels
+
+    results = pd.DataFrame(records)
+
+    if verbose:
+        summary = (
+            results
+            .groupby(["k", "w", "c1", "c2", "n_particles"])["silhouette_score"]
+            .max()
+            .reset_index()
+            .sort_values("silhouette_score", ascending=False)
+        )
+        print("\n=== Grid Search Results (best run per combination) ===")
+        print(summary.to_string(index=False))
+        print(
+            f"\nBest: k={best_model.k}, w={best_model.w}, "
+            f"c1={best_model.c1}, c2={best_model.c2}, "
+            f"n_particles={best_model.n_particles}"
+            f"  →  silhouette={best_score:.4f}"
+        )
+
+    if plot:
+        plt.figure(figsize=(8, 4))
+        colors = plt.cm.get_cmap("tab10", len(list(w_values)))
+
+        for idx, w_val in enumerate(w_values):
+            best_per_k = (
+                results[results["w"] == w_val]
+                .groupby("k")["silhouette_score"]
+                .max()
+                .reset_index()
+            )
+            plt.plot(
+                best_per_k["k"],
+                best_per_k["silhouette_score"],
+                marker="o",
+                linewidth=2,
+                color=colors(idx),
+                label=f"w={w_val}",
+            )
+
+        plt.axvline(
+            best_model.k,
+            color="red",
+            linestyle="--",
+            alpha=0.7,
+            label=f"Best k={best_model.k}",
+        )
+        plt.title("Grid Search: Silhouette Score vs k")
+        plt.xlabel("k (number of clusters)")
+        plt.ylabel("Best Silhouette Score")
+        plt.xticks(list(k_values))
+        plt.legend()
+        plt.grid(True, linestyle="--", alpha=0.5)
+        plt.tight_layout()
+        plt.show()
+
+    return best_model, best_labels, results

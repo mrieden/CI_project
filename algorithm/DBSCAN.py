@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 from sklearn.metrics import silhouette_score
@@ -136,66 +137,97 @@ class DBSCAN:
 
         plt.show()
 
-    @staticmethod
-    def grid_search(X, eps_values, min_samples_values,
-                    score_fn=None, verbose=True, plot_best=True):
 
-        X = np.array(X, dtype=float)
+def grid_search(
+    X,
+    eps_values=(0.3, 0.5, 0.7, 1.0),
+    min_samples_values=(3, 5, 10),
+    verbose=True,
+    plot=True,
+):
+    if isinstance(X, pd.DataFrame):
+        X_arr = X.to_numpy()
+    else:
+        X_arr = np.array(X, dtype=float)
 
-        # ===== unified silhouette scoring =====
-        if score_fn is None:
-            def score_fn(X, labels):
+    eps_list = list(eps_values)
+    min_samples_list = list(min_samples_values)
 
-                mask = labels != -1
-                X_f = X[mask]
-                labels_f = labels[mask]
+    records = []
+    best_score = -np.inf
+    best_model = None
+    best_labels = None
 
-                if len(np.unique(labels_f)) < 2:
-                    return -1.0
+    for eps, min_s in product(eps_list, min_samples_list):
+        model = DBSCAN(eps=eps, min_samples=min_s)
+        labels = model.fit(X_arr)
+        score = model.fitness
 
-                return silhouette_score(X_f, labels_f)
-
-        results = []
-
-        for eps, min_s in product(eps_values, min_samples_values):
-
-            model = DBSCAN(eps=eps, min_samples=min_s)
-            labels = model.fit(X)
-
-            score = score_fn(X, labels)
-
-            results.append({
-                "eps": eps,
-                "min_samples": min_s,
-                "n_clusters": model.n_clusters_,
-                "noise": int(np.sum(labels == -1)),
-                "score": score,
-                "model": model,
-                "labels": labels
-            })
-
-            if verbose:
-                print(
-                    f"eps={eps:.3f}  min_samples={min_s:>3d}  "
-                    f"clusters={model.n_clusters_:>2d}  "
-                    f"noise={np.sum(labels==-1):>4d}  "
-                    f"score={score:.4f}"
-                )
-
-        results.sort(key=lambda r: r["score"], reverse=True)
-        best = results[0]
-
-        print(
-            f"\n★ Best → eps={best['eps']} "
-            f"min_samples={best['min_samples']} "
-            f"score={best['score']:.4f}"
+        records.append(
+            dict(
+                eps=eps,
+                min_samples=min_s,
+                n_clusters=model.n_clusters_,
+                noise_points=int(np.sum(labels == -1)),
+                silhouette_score=score,
+            )
         )
 
-        if plot_best:
-            best["model"].plot_clusters(
-                X,
-                best["labels"],
-                title_suffix=f"eps={best['eps']}, min_samples={best['min_samples']}"
+        if verbose:
+            print(
+                f"eps={eps:.3f}  min_samples={min_s:>3d}  "
+                f"clusters={model.n_clusters_:>2d}  "
+                f"noise={np.sum(labels == -1):>4d}  "
+                f"silhouette={score:.4f}"
             )
 
-        return results, best["model"]
+        if score > best_score:
+            best_score = score
+            best_model = model
+            best_labels = labels
+
+    results = pd.DataFrame(records)
+
+    if verbose:
+        print(
+            f"\nBest: eps={best_model.eps}, "
+            f"min_samples={best_model.min_samples}"
+            f"  →  silhouette={best_score:.4f}"
+        )
+
+    if plot:
+        # ── heatmap of silhouette scores ──────────────────────────────
+        score_grid = (
+            results
+            .pivot(index="min_samples", columns="eps", values="silhouette_score")
+        )
+
+        fig, ax = plt.subplots(figsize=(8, 4))
+        im = ax.imshow(score_grid.values, aspect="auto", cmap="YlGnBu")
+
+        ax.set_xticks(range(len(eps_list)))
+        ax.set_xticklabels([f"{e:.3g}" for e in score_grid.columns])
+        ax.set_yticks(range(len(min_samples_list)))
+        ax.set_yticklabels(score_grid.index)
+        ax.set_xlabel("eps")
+        ax.set_ylabel("min_samples")
+        ax.set_title("Grid Search: Silhouette Score Heatmap")
+
+        for r in range(score_grid.shape[0]):
+            for c in range(score_grid.shape[1]):
+                val = score_grid.values[r, c]
+                ax.text(c, r, f"{val:.3f}", ha="center", va="center",
+                        fontsize=8, color="black")
+
+        plt.colorbar(im, ax=ax, label="Silhouette Score")
+        plt.tight_layout()
+        plt.show()
+
+        # ── best cluster plot ─────────────────────────────────────────
+        best_model.plot_clusters(
+            X_arr,
+            best_labels,
+            title_suffix=f"eps={best_model.eps}, min_samples={best_model.min_samples}",
+        )
+
+    return best_model, best_labels, results

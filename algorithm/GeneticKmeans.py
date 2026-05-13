@@ -158,7 +158,7 @@ class GeneticKMeans:
             else:
                 no_improvement_count = 0
 
-            if no_improvement_count >= 5:
+            if no_improvement_count >= 15:
                 print(f"Early stopping at generation {gen + 1} (no improvement for 5 generations)")
                 break
 
@@ -242,69 +242,124 @@ class GeneticKMeans:
 
         plt.show()
 
-    def grid_search(self, X, param_grid=None):
 
-        # param_grid = {
-        #     'k': [3,4],
-        #     'population_size': [10, 20, 30],
-        #     'generations': [50, 20],
-        #     'mutation_rate': [0.05, 0.1, 0.2],
-        #     'crossover_rate': [0.7, 0.8, 0.9]
-        # }
+def grid_search(
+    X,
+    k_values=range(2, 9),
+    population_size_values=(10, 20, 30),
+    generations_values=(50, 100),
+    mutation_rate_values=(0.05, 0.1, 0.2),
+    crossover_rate_values=(0.7, 0.8, 0.9),
+    n_runs=3,
+    random_state=None,
+    verbose=True,
+    plot=True,
+):
+    if isinstance(X, pd.DataFrame):
+        X_arr = X.to_numpy()
+    else:
+        X_arr = np.asarray(X)
 
-        best_score = -np.inf
-        best_params = None
-        k =3
-        self.k = k
+    records = []
+    best_score = -np.inf
+    best_model = None
+    best_labels = None
 
-        
+    for k in k_values:
+        for population_size in population_size_values:
+            for generations in generations_values:
+                for mutation_rate in mutation_rate_values:
+                    for crossover_rate in crossover_rate_values:
+                        for run in range(n_runs):
+                            seed = (
+                                None
+                                if random_state is None
+                                else random_state + run
+                            )
+                            model = GeneticKMeans(
+                                k=k,
+                                population_size=population_size,
+                                generations=generations,
+                                mutation_rate=mutation_rate,
+                                crossover_rate=crossover_rate,
+                                random_state=seed,
+                            )
+                            labels, score = model.fit(X_arr)
+                            records.append(
+                                dict(
+                                    k=k,
+                                    population_size=population_size,
+                                    generations=generations,
+                                    mutation_rate=mutation_rate,
+                                    crossover_rate=crossover_rate,
+                                    run=run,
+                                    silhouette_score=score,
+                                )
+                            )
 
-        for population_size in param_grid['population_size']:
+                            if score > best_score:
+                                best_score = score
+                                best_model = model
+                                best_labels = labels
 
-            for generations in param_grid['generations']:
+    results = pd.DataFrame(records)
 
-                for mutation_rate in param_grid['mutation_rate']:
-
-                    for crossover_rate in param_grid['crossover_rate']:
-
-                        # update parameters
-                        self.k = k
-                        self.population_size = population_size
-                        self.generations = generations
-                        self.mutation_rate = mutation_rate
-                        self.crossover_rate = crossover_rate
-
-                        # fit model
-                        labels, score = self.fit(X)
-
-                        print(
-                            f"k={k}, "
-                            f"pop={population_size}, "
-                            f"gens={generations}, "
-                            f"mutation={mutation_rate}, "
-                            f"crossover={crossover_rate} "
-                            f"-> silhouette={score:.4f}"
-                        )
-
-                        # save best
-                        if score > best_score:
-
-                            best_score = score
-
-                            best_params = {
-                                'k': k,
-                                'population_size': population_size,
-                                'generations': generations,
-                                'mutation_rate': mutation_rate,
-                                'crossover_rate': crossover_rate
-                            }
-
-        print("\nBest Parameters:")
-        print(best_params)
-
+    if verbose:
+        summary = (
+            results
+            .groupby([
+                "k", "population_size", "generations",
+                "mutation_rate", "crossover_rate"
+            ])["silhouette_score"]
+            .max()
+            .reset_index()
+            .sort_values("silhouette_score", ascending=False)
+        )
+        print("\n=== Grid Search Results (best run per combination) ===")
+        print(summary.to_string(index=False))
         print(
-            f"Best Silhouette Score: "
-            f"{best_score:.4f}"
+            f"\nBest: k={best_model.k}, "
+            f"population_size={best_model.population_size}, "
+            f"generations={best_model.generations}, "
+            f"mutation_rate={best_model.mutation_rate}, "
+            f"crossover_rate={best_model.crossover_rate}"
+            f"  →  silhouette={best_score:.4f}"
         )
 
-        return best_params, best_score
+    if plot:
+        plt.figure(figsize=(8, 4))
+        colors = plt.cm.get_cmap("tab10", len(list(mutation_rate_values)))
+
+        for idx, mr in enumerate(mutation_rate_values):
+            best_per_k = (
+                results[results["mutation_rate"] == mr]
+                .groupby("k")["silhouette_score"]
+                .max()
+                .reset_index()
+            )
+            plt.plot(
+                best_per_k["k"],
+                best_per_k["silhouette_score"],
+                marker="o",
+                linewidth=2,
+                color=colors(idx),
+                label=f"mutation_rate={mr}",
+            )
+
+        plt.axvline(
+            best_model.k,
+            color="red",
+            linestyle="--",
+            alpha=0.7,
+            label=f"Best k={best_model.k}",
+        )
+        plt.title("Grid Search: Silhouette Score vs k")
+        plt.xlabel("k (number of clusters)")
+        plt.ylabel("Best Silhouette Score")
+        plt.xticks(list(k_values))
+        plt.legend()
+        plt.grid(True, linestyle="--", alpha=0.5)
+        plt.tight_layout()
+        plt.show()
+
+    return best_model, best_labels, results

@@ -117,3 +117,100 @@ class KMeans:
         plt.grid(True, linestyle='--', alpha=0.5)
 
         plt.show()
+
+
+def grid_search(
+    X,
+    k_values=range(2, 9),
+    max_iters_values=(100,),
+    tol_values=(1e-4,),
+    n_runs=3,
+    random_state=None,
+    verbose=True,
+    plot=True,
+):
+    if isinstance(X, pd.DataFrame):
+        X_arr = X.to_numpy()
+    else:
+        X_arr = np.asarray(X)
+
+    records = []
+    best_score = -np.inf
+    best_model = None
+    best_labels = None
+
+    for k in k_values:
+        for max_iters in max_iters_values:
+            for tol in tol_values:
+                for run in range(n_runs):
+                    seed = (
+                        None
+                        if random_state is None
+                        else random_state + run
+                    )
+                    model = KMeans(
+                        k=k,
+                        max_iters=max_iters,
+                        tol=tol,
+                        random_state=seed,
+                    )
+                    labels, score = model.fit(X_arr)
+                    records.append(
+                        dict(k=k, max_iters=max_iters, tol=tol,
+                            run=run, silhouette_score=score)
+                    )
+
+                    if score > best_score:
+                        best_score = score
+                        best_model = model
+                        best_labels = labels
+
+    results = pd.DataFrame(records)
+
+    if verbose:
+        summary = (
+            results
+            .groupby(["k", "max_iters", "tol"])["silhouette_score"]
+            .max()
+            .reset_index()
+            .sort_values("silhouette_score", ascending=False)
+        )
+        print("\n=== Grid Search Results (best run per combination) ===")
+        print(summary.to_string(index=False))
+        print(
+            f"\nBest: k={best_model.k}, max_iters={best_model.max_iters}, "
+            f"tol={best_model.tol}  →  silhouette={best_score:.4f}"
+        )
+
+    if plot:
+        best_per_k = (
+            results
+            .groupby("k")["silhouette_score"]
+            .max()
+            .reset_index()
+        )
+        plt.figure(figsize=(8, 4))
+        plt.plot(
+            best_per_k["k"],
+            best_per_k["silhouette_score"],
+            marker="o",
+            linewidth=2,
+            color="steelblue",
+        )
+        plt.axvline(
+            best_model.k,
+            color="red",
+            linestyle="--",
+            alpha=0.7,
+            label=f"Best k={best_model.k}",
+        )
+        plt.title("Grid Search: Silhouette Score vs k")
+        plt.xlabel("k (number of clusters)")
+        plt.ylabel("Best Silhouette Score")
+        plt.xticks(list(k_values))
+        plt.legend()
+        plt.grid(True, linestyle="--", alpha=0.5)
+        plt.tight_layout()
+        plt.show()
+
+    return best_model, best_labels, results
