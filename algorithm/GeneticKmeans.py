@@ -116,6 +116,7 @@ class GeneticKMeans:
     # FIT
     # -------------------------
     def fit(self, X):
+
         if self.random_state is not None:
             np.random.seed(self.random_state)
 
@@ -126,8 +127,8 @@ class GeneticKMeans:
             self._kmeans_plus_plus(X)
             for _ in range(self.population_size)
         ])
-
         no_improvement_count = 0
+
         best_fitness = -1
         best_centroids = None
         best_labels = None
@@ -136,10 +137,13 @@ class GeneticKMeans:
 
             fitness_scores = []
             labels_list = []
-            previous_best = best_fitness
+
+            gen_best_fitness = -1
 
             for individual in population:
+
                 fitness, labels = self._fitness(X, individual)
+
                 fitness_scores.append(fitness)
                 labels_list.append(labels)
 
@@ -148,21 +152,20 @@ class GeneticKMeans:
                     best_centroids = individual.copy()
                     best_labels = labels.copy()
 
-            # Early stopping
-            if best_fitness > previous_best:
-                no_improvement_count = 0
-            else:
+            # ---- Early stopping check ----
+            if gen_best_fitness <= best_fitness:
                 no_improvement_count += 1
+            else:
+                no_improvement_count = 0
 
-            if no_improvement_count >= 10:   # less aggressive
-                print(f"Early stopping at generation {gen + 1}")
+            if no_improvement_count >= 5:
+                print(f"Early stopping at generation {gen + 1} (no improvement for 5 generations)")
                 break
 
-            # ✅ Elitism: carry best individual into next generation
-            elite_idx = np.argmax(fitness_scores)
-            new_population = [population[elite_idx].copy()]
+            new_population = []
 
             while len(new_population) < self.population_size:
+
                 parent1 = self._selection(population, fitness_scores)
                 parent2 = self._selection(population, fitness_scores)
 
@@ -172,13 +175,19 @@ class GeneticKMeans:
                     child = parent1.copy()
 
                 child = self._mutation(child, X)
+
                 new_population.append(child)
 
             population = np.array(new_population)
-            print(f"Generation {gen + 1} | Best Silhouette: {best_fitness:.4f}")
+
+            print(
+                f"Generation {gen + 1} "
+                f"| Best Silhouette: {best_fitness:.4f}"
+            )
 
         self.centroids = best_centroids
         self.fitness = best_fitness
+
         return best_labels, best_fitness
 
     # -------------------------
@@ -246,7 +255,7 @@ class GeneticKMeans:
         best_score = -np.inf
         best_params = None
         k =3
-        
+        self.k = k
 
         
 
@@ -257,39 +266,38 @@ class GeneticKMeans:
                 for mutation_rate in param_grid['mutation_rate']:
 
                     for crossover_rate in param_grid['crossover_rate']:
-                        for k in param_grid['k']:
 
-                            # update parameters
-                            self.k = k
-                            self.population_size = population_size
-                            self.generations = generations
-                            self.mutation_rate = mutation_rate
-                            self.crossover_rate = crossover_rate
+                        # update parameters
+                        self.k = k
+                        self.population_size = population_size
+                        self.generations = generations
+                        self.mutation_rate = mutation_rate
+                        self.crossover_rate = crossover_rate
 
-                            # fit model
-                            labels, score = self.fit(X)
+                        # fit model
+                        labels, score = self.fit(X)
 
-                            print(
-                                f"k={k}, "
-                                f"pop={population_size}, "
-                                f"gens={generations}, "
-                                f"mutation={mutation_rate}, "
-                                f"crossover={crossover_rate} "
-                                f"-> silhouette={score:.4f}"
-                            )
+                        print(
+                            f"k={k}, "
+                            f"pop={population_size}, "
+                            f"gens={generations}, "
+                            f"mutation={mutation_rate}, "
+                            f"crossover={crossover_rate} "
+                            f"-> silhouette={score:.4f}"
+                        )
 
-                            # save best
-                            if score > best_score:
+                        # save best
+                        if score > best_score:
 
-                                best_score = score
+                            best_score = score
 
-                                best_params = {
-                                    'k': k,
-                                    'population_size': population_size,
-                                    'generations': generations,
-                                    'mutation_rate': mutation_rate,
-                                    'crossover_rate': crossover_rate
-                                }
+                            best_params = {
+                                'k': k,
+                                'population_size': population_size,
+                                'generations': generations,
+                                'mutation_rate': mutation_rate,
+                                'crossover_rate': crossover_rate
+                            }
 
         print("\nBest Parameters:")
         print(best_params)

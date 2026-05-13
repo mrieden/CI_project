@@ -69,37 +69,29 @@ class FuzzyCMeans:
         return labels, fitness
 
     def plot_membership_intensity(self, X):
-        if self.centers is None or self.U is None:
-            raise RuntimeError("Call fit() before plotting.")
 
         pca = PCA(n_components=2)
         X_pca = pca.fit_transform(X)
         centers_pca = pca.transform(self.centers)
 
         labels = np.argmax(self.U, axis=1)
-        colors = plt.colormaps["tab10"]
 
         plt.figure(figsize=(8, 6))
 
+        colors = plt.cm.get_cmap("tab10", self.k)
+
         for j in range(self.k):
-            mask = labels == j                          # ← only points belonging to cluster j
+
+            cluster_points = X_pca
+
             plt.scatter(
-                X_pca[mask, 0],
-                X_pca[mask, 1],
-                color=colors(j / self.k),              # ← normalized index for colormap
-                alpha=None,                             # no per-point alpha here...
+                cluster_points[:, 0],
+                cluster_points[:, 1],
+                color=colors(j),
+                alpha=self.U[:, j],
                 s=30,
                 label=f"Cluster {j}"
             )
-            # ...instead, overlay same points with membership-driven alpha per point
-            for idx in np.where(mask)[0]:
-                plt.scatter(
-                    X_pca[idx, 0],
-                    X_pca[idx, 1],
-                    color=colors(j / self.k),
-                    alpha=float(self.U[idx, j]),        # ← membership strength as transparency
-                    s=30
-                )
 
         plt.scatter(
             centers_pca[:, 0],
@@ -111,11 +103,17 @@ class FuzzyCMeans:
             label='Cluster Centers'
         )
 
-        plt.title(f"Fuzzy C-Means (Silhouette = {self.fitness_score:.4f})")
+        plt.title(
+            f"Fuzzy C-Means "
+            f"(Silhouette = {self.fitness_score:.4f})"
+        )
+
         plt.xlabel("Principal Component 1")
         plt.ylabel("Principal Component 2")
+
         plt.legend()
         plt.grid(True, linestyle="--", alpha=0.5)
+
         plt.text(
             0.02, 0.02,
             "Color = Cluster Identity\nTransparency = Membership Strength",
@@ -123,4 +121,5 @@ class FuzzyCMeans:
             fontsize=10,
             bbox=dict(facecolor='white', alpha=0.7)
         )
+
         plt.show()
